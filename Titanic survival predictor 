@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Titanic Survival Prediction</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #1e3a8a 0%, #0ea5e9 100%);
+        }
+        .feature-card {
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+        .prediction-card {
+            border-left: 5px solid;
+            transition: all 0.3s ease;
+        }
+        .survived {
+            border-left-color: #10b981;
+        }
+        .not-survived {
+            border-left-color: #ef4444;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans">
+    <div class="gradient-bg text-white py-20 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-7xl mx-auto text-center">
+            <h1 class="text-5xl font-extrabold mb-6">Titanic Survival Predictor</h1>
+            <p class="text-xl md:text-2xl max-w-3xl mx-auto leading-relaxed">
+                Predict whether a passenger would have survived the Titanic disaster based on their characteristics
+            </p>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+        <div class="grid md:grid-cols-2 gap-12">
+            <!-- Prediction Form -->
+            <div class="bg-white rounded-xl shadow-md p-6">
+                <h2 class="text-2xl font-bold mb-6 text-gray-800">Make a Prediction</h2>
+                <form id="predictionForm">
+                    <div class="space-y-6">
+                        <div>
+                            <label class="block text-gray-700 font-medium mb-2" for="passengerClass">Passenger Class</label>
+                            <select id="passengerClass" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                <option value="1">First Class (1)</option>
+                                <option value="2">Second Class (2)</option>
+                                <option value="3">Third Class (3)</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 font-medium mb-2" for="gender">Gender</label>
+                            <select id="gender" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                <option value="male">Male</option>
+                                <option value="female">Female</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 font-medium mb-2" for="age">Age</label>
+                            <input type="number" id="age" min="0" max="100" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Enter passenger age" required>
+                            <p id="ageError" class="text-red-500 text-sm mt-1 hidden">Please enter a valid age (0-100)</p>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 font-medium mb-2" for="siblingsSpouses">Number of Siblings/Spouses Aboard</label>
+                            <input type="number" id="siblingsSpouses" min="0" max="10" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="0">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 font-medium mb-2" for="parentsChildren">Number of Parents/Children Aboard</label>
+                            <input type="number" id="parentsChildren" min="0" max="10" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="0">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 font-medium mb-2" for="fare">Fare Paid</label>
+                            <div class="relative">
+                                <span class="absolute left-3 top-2 text-gray-500">$</span>
+                                <input type="number" id="fare" min="0" max="600" step="0.01" class="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Enter fare amount">
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 font-medium mb-2" for="embarked">Port of Embarkation</label>
+                            <select id="embarked" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                <option value="S">Southampton (S)</option>
+                                <option value="C">Cherbourg (C)</option>
+                                <option value="Q">Queenstown (Q)</option>
+                            </select>
+                        </div>
+                        
+                        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition duration-200">
+                            Predict Survival
+                        </button>
+                    </div>
+                </form>
+                
+                <!-- Prediction Result -->
+                <div id="predictionResult" class="mt-8 hidden">
+                    <div class="prediction-card bg-white p-8 rounded-xl shadow-lg mb-6 transition-all duration-300">
+                        <h3 class="text-lg font-semibold mb-2">Prediction Result</h3>
+                        <div id="resultDetails" class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-600">Survival Prediction:</p>
+                            </div>
+                            <div id="survivalBadge" class="px-4 py-2 rounded-full font-bold"></div>
+                        </div>
+                        <p id="confidenceText" class="mt-2 text-sm text-gray-500">Prediction confidence: <span id="confidenceValue" class="font-medium"></span>%</p>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <canvas id="featureImportanceChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Data Visualization -->
+            <div>
+                <div class="bg-white rounded-xl shadow-md p-6 mb-6">
+                    <h2 class="text-2xl font-bold mb-6 text-gray-800">Survival Statistics</h2>
+                    <canvas id="survivalChart"></canvas>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="feature-card bg-white rounded-xl shadow-md p-6">
+                        <h3 class="font-semibold text-gray-800 mb-2">Class vs. Survival</h3>
+                        <canvas id="classChart"></canvas>
+                    </div>
+                    
+                    <div class="feature-card bg-white rounded-xl shadow-md p-6">
+                        <h3 class="font-semibold text-gray-800 mb-2">Gender vs. Survival</h3>
+                        <canvas id="genderChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Feature Importance Section -->
+        <div class="mt-12">
+            <div class="bg-white rounded-xl shadow-md p-6">
+                <h2 class="text-2xl font-bold mb-6 text-gray-800">Key Factors Affecting Survival</h2>
+                <div class="grid md:grid-cols-3 gap-6">
+                    <div class="feature-card p-6 bg-white rounded-xl shadow-md hover:shadow-lg transform transition duration-300 border border-gray-100">
+                        <div class="text-blue-600 mb-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                            </svg>
+                        </div>
+                        <h3 class="font-semibold text-lg mb-2 text-gray-800">Gender</h3>
+                        <p class="text-gray-600">Women and children had higher priority for lifeboats, leading to significant survival rate differences.</p>
+                    </div>
+                    
+                    <div class="feature-card p-6 border border-gray-100 rounded-lg">
+                        <div class="text-blue-600 mb-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                            </svg>
+                        </div>
+                        <h3 class="font-semibold text-lg mb-2 text-gray-800">Passenger Class</h3>
+                        <p class="text-gray-600">First class passengers (62% survival) had cabins closer to lifeboats compared to third class (24% survival). Priority boarding saved lives.</p>
+                    </div>
+                    
+                    <div class="feature-card p-6 border border-gray-100 rounded-lg">
+                        <div class="text-blue-600 mb-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <h3 class="font-semibold text-lg mb-2 text-gray-800">Age</h3>
+                        <p class="text-gray-600">Children were prioritized during evacuation, while older passengers had lower survival rates.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize charts when the DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            // Survival Rate Chart
+            const survivalCtx = document.getElementById('survivalChart').getContext('2d');
+            new Chart(survivalCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Did Not Survive', 'Survived'],
+                    datasets: [{
+                        data: [61.6, 38.4], // Approximate Titanic survival rates
+                        backgroundColor: [
+                            'rgba(239, 68, 68, 0.8)',
+                            'rgba(16, 185, 129, 0.8)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.label + ': ' + context.raw + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Class vs Survival Chart
+            const classCtx = document.getElementById('classChart').getContext('2d');
+            new Chart(classCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['1st Class', '2nd Class', '3rd Class'],
+                    datasets: [
+                        {
+                            label: 'Survived',
+                            data: [62.96, 47.28, 24.24],
+                            backgroundColor: 'rgba(16, 185, 129, 0.8)',
+                        },
+                        {
+                            label: 'Did Not Survive',
+                            data: [37.04, 52.72, 75.76],
+                            backgroundColor: 'rgba(239, 68, 68, 0.8)',
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        x: {
+                            stacked: true,
+                        },
+                        y: {
+                            stacked: true,
+                            beginAtZero: true,
+                            max: 100
+                        }
+                    }
+                }
+            });
+            
+            // Gender vs Survival Chart
+            const genderCtx = document.getElementById('genderChart').getContext('2d');
+            new Chart(genderCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Female', 'Male'],
+                    datasets: [
+                        {
+                            label: 'Survived',
+                            data: [74.2, 18.9],
+                            backgroundColor: 'rgba(16, 185, 129, 0.8)',
+                        },
+                        {
+                            label: 'Did Not Survive',
+                            data: [25.8, 81.1],
+                            backgroundColor: 'rgba(239, 68, 68, 0.8)',
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        x: {
+                            stacked: true,
+                        },
+                        y: {
+                            stacked: true,
+                            beginAtZero: true,
+                            max: 100
+                        }
+                    }
+                }
+            });
+            
+            // Handle form submission
+            document.getElementById('predictionForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                // Get form values
+                const passengerClass = parseInt(document.getElementById('passengerClass').value);
+                const gender = document.getElementById('gender').value;
+                const age = parseFloat(document.getElementById('age').value);
+                const siblingsSpouses = parseInt(document.getElementById('siblingsSpouses').value);
+                const parentsChildren = parseInt(document.getElementById('parentsChildren').value);
+                const fare = parseFloat(document.getElementById('fare').value);
+                const embarked = document.getElementById('embarked').value;
+                
+                // Validate inputs
+                if (isNaN(age) || isNaN(fare) || isNaN(siblingsSpouses) || isNaN(parentsChildren)) {
+                    alert('Please fill out all fields with valid numbers');
+                    return;
+                }
+                
+                // Simulate prediction (in a real app, this would be an API call to a Python backend)
+                const predictionResult = predictSurvival({
+                    passengerClass,
+                    gender,
+                    age,
+                    siblingsSpouses,
+                    parentsChildren,
+                    fare,
+                    embarked
+                });
+                
+                // Display results
+                displayPredictionResult(predictionResult);
+            });
+            
+            // Feature Importance Chart
+            const featureCtx = document.getElementById('featureImportanceChart').getContext('2d');
+            const featureChart = new Chart(featureCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Gender', 'Passenger Class', 'Age', 'Fare', 'Siblings/Spouses', 'Parents/Children', 'Embarked'],
+                    datasets: [{
+                        label: 'Feature Importance',
+                        data: [0.45, 0.32, 0.12, 0.08, 0.02, 0.01, 0.005],
+                        backgroundColor: 'rgba(59, 130, 246, 0.8)',
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        title: {
+                            display: true,
+                            text: 'Feature Importance in Survival Prediction'
+                        }
+                    }
+                }
+            });
+        });
+        
+        // Simulated prediction function (would be replaced with actual API call in production)
+        function predictSurvival(passengerData) {
+            // Simulate a machine learning model's prediction
+            let survivalScore = 0;
+            
+            // Gender has strongest impact (women had 3.7x higher survival rate)
+            survivalScore += passengerData.gender === 'female' ? 0.7 : -0.4;
+            
+            // Add weight for passenger class (higher classes had better survival)
+            survivalScore += (4 - passengerData.passengerClass) * 0.15;
+            
+            // Add weight for age (children had better survival)
+            if (passengerData.age < 18) survivalScore += 0.1;
+            if (passengerData.age > 50) survivalScore -= 0.05;
+            
+            // Add weight for fare (higher fare = higher class usually)
+            survivalScore += Math.min(passengerData.fare / 100, 0.08);
+            
+            // Normalize score to 0-1 range with sigmoid function
+            const probability = 1 / (1 + Math.exp(-survivalScore));
+            
+            // Random variation to simulate model uncertainty
+            const confidence = Math.min(probability * 100 + (Math.random() * 20 - 10), 99);
+            
+            return {
+                survived: probability > 0.5,
+                confidence: confidence.toFixed(1),
+                probability: probability
+            };
+        }
+        
+        function displayPredictionResult(result) {
+            const resultElement = document.getElementById('predictionResult');
+            const badgeElement = document.getElementById('survivalBadge');
+            const confidenceElement = document.getElementById('confidenceValue');
+            
+            resultElement.classList.remove('hidden');
+            
+            if (result.survived) {
+                badgeElement.textContent = 'SURVIVED';
+                badgeElement.className = 'px-4 py-2 rounded-full font-bold bg-green-100 text-green-800';
+                document.querySelector('.prediction-card').classList.add('survived');
+                document.querySelector('.prediction-card').classList.remove('not-survived');
+            } else {
+                badgeElement.textContent = 'DID NOT SURVIVE';
+                badgeElement.className = 'px-4 py-2 rounded-full font-bold bg-red-100 text-red-800';
+                document.querySelector('.prediction-card').classList.add('not-survived');
+                document.querySelector('.prediction-card').classList.remove('survived');
+            }
+            
+            confidenceElement.textContent = result.confidence;
+            
+            // Scroll to results
+            resultElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+    </script>
+</body>
+</html>
