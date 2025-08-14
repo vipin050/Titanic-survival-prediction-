@@ -338,5 +338,4 @@
             trainBtn.innerHTML = 'Training...';
             
             // Simulate model training
-            setTimeout(() => {# Titanic-survival-prediction-
-Use the dataset from kaggle 
+            setTimeout(() => {# Titanic-survival-prediction
