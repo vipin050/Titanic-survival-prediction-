@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Credit Card Fraud Detection System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
+    <style>
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .feature-importance-bar {
+            height: 20px;
+            background-color: #3b82f6;
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header Section -->
+        <header class="mb-8">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-800">Credit Card Fraud Detection</h1>
+                    <p class="text-gray-600">Advanced ML-powered system to identify fraudulent transactions</p>
+                </div>
+                <div class="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center">
+                    <img src="https://placehold.co/64x64" alt="Fraud detection shield icon with blue and white colors" />
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <!-- Left Sidebar -->
+            <div class="lg:col-span-1">
+                <!-- Data Upload Card -->
+                <div class="bg-white rounded-lg shadow p-4 mb-6">
+                    <h3 class="font-semibold text-lg mb-4 text-gray-800">Upload Transaction Data</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Select Dataset</label>
+                            <input type="file" id="fileInput" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                        </div>
+                        <button id="uploadBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md transition">Upload & Analyze</button>
+                    </div>
+                </div>
+
+                <!-- Model Selection Card -->
+                <div class="bg-white rounded-lg shadow p-4 mb-6">
+                    <h3 class="font-semibold text-lg mb-4 text-gray-800">Model Configuration</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Select Algorithm</label>
+                            <select id="modelSelect" class="w-full border border-gray-300 rounded-md p-2">
+                                <option value="random_forest">Random Forest</option>
+                                <option value="logistic_regression">Logistic Regression</option>
+                                <option value="xgboost">XGBoost</option>
+                                <option value="svm">Support Vector Machine</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Imbalance Handling</label>
+                            <select id="imbalanceSelect" class="w-full border border-gray-300 rounded-md p-2">
+                                <option value="smote">SMOTE (Oversampling)</option>
+                                <option value="undersample">Undersampling</option>
+                                <option value="none">No handling</option>
+                            </select>
+                        </div>
+                        <button id="trainBtn" class="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-md transition">Train Model</button>
+                    </div>
+                </div>
+
+                <!-- Data Summary Card -->
+                <div class="bg-white rounded-lg shadow p-4">
+                    <h3 class="font-semibold text-lg mb-4 text-gray-800">Data Summary</h3>
+                    <div class="space-y-3">
+                        <div>
+                            <span class="text-sm text-gray-600">Total Transactions:</span>
+                            <span id="totalTransactions" class="float-right font-medium">-</span>
+                        </div>
+                        <div>
+                            <span class="text-sm text-gray-600">Legitimate:</span>
+                            <span id="legitCount" class="float-right font-medium">-</span>
+                        </div>
+                        <div>
+                            <span class="text-sm text-gray-600">Fraudulent:</span>
+                            <span id="fraudCount" class="float-right font-medium text-red-600">-</span>
+                        </div>
+                        <div>
+                            <span class="text-sm text-gray-600">Fraud Ratio:</span>
+                            <span id="fraudRatio" class="float-right font-medium">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="lg:col-span-3">
+                <!-- Navigation Tabs -->
+                <div class="flex border-b border-gray-200 mb-6">
+                    <button class="tab-btn py-2 px-4 font-medium text-gray-600 hover:text-blue-600 border-b-2 border-transparent hover:border-blue-600 active" data-tab="dashboard">Dashboard</button>
+                    <button class="tab-btn py-2 px-4 font-medium text-gray-600 hover:text-blue-600 border-b-2 border-transparent hover:border-blue-600" data-tab="analysis">Data Analysis</button>
+                    <button class="tab-btn py-2 px-4 font-medium text-gray-600 hover:text-blue-600 border-b-2 border-transparent hover:border-blue-600" data-tab="model">Model Results</button>
+                    <button class="tab-btn py-2 px-4 font-medium text-gray-600 hover:text-blue-600 border-b-2 border-transparent hover:border-blue-600" data-tab="predict">Predict Fraud</button>
+                </div>
+
+                <!-- Tab Contents -->
+                <div id="dashboard" class="tab-content active">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <!-- Fraud Ratio Card -->
+                        <div class="bg-white rounded-lg shadow p-4">
+                            <div class="flex justify-between items-center mb-2">
+                                <h4 class="font-medium text-gray-800">Fraud Distribution</h4>
+                                <span class="text-sm bg-blue-100 text-blue-800 py-1 px-2 rounded-full">Live</span>
+                            </div>
+                            <canvas id="fraudPieChart" height="200"></canvas>
+                        </div>
+                        <!-- Amount Distribution -->
+                        <div class="bg-white rounded-lg shadow p-4">
+                            <h4 class="font-medium text-gray-800 mb-2">Transaction Amount Distribution</h4>
+                            <canvas id="amountHistogram" height="200"></canvas>
+                        </div>
+                    </div>
+                    
+                    <!-- Real-time Alerts -->
+                    <div class="bg-white rounded-lg shadow p-4 mb-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h4 class="font-medium text-gray-800">Recent Fraud Alerts</h4>
+                            <span class="text-sm text-gray-500">Last 24 hours</span>
+                        </div>
+                        <div class="space-y-3" id="fraudAlerts">
+                            <!-- Sample alerts will be added dynamically -->
+                            <div class="p-3 bg-red-50 rounded-lg flex items-center">
+                                <div class="w-3 h-3 bg-red-500 rounded-full mr-3"></div>
+                                <div>
+                                    <div class="text-sm font-medium">Transaction ID: #TXN-847392</div>
+                                    <div class="text-xs text-gray-600">$2,850.00 | 12:45 PM | High probability (92%)</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="analysis" class="tab-content">
+                    <div class="bg-white rounded-lg shadow p-4 mb-6">
+                        <h4 class="font-medium text-gray-800 mb-4">Transaction Data Overview</h4>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Time</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">V1</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">V2</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Class</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="dataTableBody" class="bg-white divide-y divide-gray-200">
+                                    <!-- Data will be populated here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="model" class="tab-content">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <!-- Model Performance -->
+                        <div class="bg-white rounded-lg shadow p-4">
+                            <h4 class="font-medium text-gray-800 mb-4">Model Performance Metrics</h4>
+                            <div class="space-y-3">
+                                <div>
+                                    <span class="text-sm text-gray-600">Accuracy:</span>
+                                    <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                        <div id="accuracyBar" class="bg-blue-600 h-2.5 rounded-full" style="width: 0%"></div>
+                                    </div>
+                                    <span id="accuracyValue" class="text-sm font-medium float-right">-</span>
+                                </div>
+                                <div>
+                                    <span class="text-sm text-gray-600">Precision:</span>
+                                    <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                        <div id="precisionBar" class="bg-green-600 h-2.5 rounded-full" style="width: 0%"></div>
+                                    </div>
+                                    <span id="precisionValue" class="text-sm font-medium float-right">-</span>
+                                </div>
+                                <div>
+                                    <span class="text-sm text-gray-600">Recall:</span>
+                                    <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                        <div id="recallBar" class="bg-purple-600 h-2.5 rounded-full" style="width: 0%"></div>
+                                    </div>
+                                    <span id="recallValue" class="text-sm font-medium float-right">-</span>
+                                </div>
+                                <div>
+                                    <span class="text-sm text-gray-600">F1 Score:</span>
+                                    <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                        <div id="f1Bar" class="bg-yellow-500 h-2.5 rounded-full" style="width: 0%"></div>
+                                    </div>
+                                    <span id="f1Value" class="text-sm font-medium float-right">-</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Feature Importance -->
+                        <div class="bg-white rounded-lg shadow p-4">
+                            <h4 class="font-medium text-gray-800 mb-4">Feature Importance</h4>
+                            <div id="featureImportance" class="space-y-2">
+                                <!-- Dynamically added -->
+                                <div>
+                                    <div class="text-sm text-gray-600 mb-1">V17</div>
+                                    <div class="feature-importance-bar" style="width: 85%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Confusion Matrix -->
+                    <div class="bg-white rounded-lg shadow p-4">
+                        <h4 class="font-medium text-gray-800 mb-4">Confusion Matrix</h4>
+                        <div class="flex justify-center">
+                            <canvas id="confusionMatrix" height="250"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="predict" class="tab-content">
+                    <div class="bg-white rounded-lg shadow p-4">
+                        <h4 class="font-medium text-gray-800 mb-4">Fraud Detection Prediction</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <div class="space-y-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Transaction Amount ($)</label>
+                                        <input type="number" id="predAmount" class="w-full border border-gray-300 rounded-md p-2" placeholder="Enter amount">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Time (hrs since first transaction)</label>
+                                        <input type="number" id="predTime" class="w-full border border-gray-300 rounded-md p-2" placeholder="Enter time">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">V1 Value</label>
+                                        <input type="number" step="0.01" id="predV1" class="w-full border border-gray-300 rounded-md p-2" placeholder="PCA component 1">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">V2 Value</label>
+                                        <input type="number" step="0.01" id="predV2" class="w-full border border-gray-300 rounded-md p-2" placeholder="PCA component 2">
+                                    </div>
+                                    <button id="predictBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md transition">Predict Fraud</button>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="p-6 bg-gray-50 rounded-lg">
+                                    <h5 class="font-medium text-center text-gray-700 mb-2">Prediction Result</h5>
+                                    <div id="predictionResult" class="text-center py-8">
+                                        <div class="text-gray-500">Enter transaction details and click "Predict Fraud"</div>
+                                    </div>
+                                    <div id="probabilityChartContainer" class="mt-4 hidden">
+                                        <canvas id="probabilityChart" height="100"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Sample data for demonstration
+        const sampleData = {
+            "Time": [0, 0, 1, 1, 2, 2, 3, 3],
+            "V1": [-1.36, 1.19, -1.36, -0.97, -1.15, -0.47, 0.94, -0.47],
+            "V2": [0.21, 0.22, 0.31, -0.15, 0.19, 0.35, 0.05, 0.29],
+            "V3": [0.03, 0.3, 0.17, 0.32, 0.08, 0.13, -0.24, 0.35],
+            "Amount": [149.62, 2.69, 378.66, 123.5, 69.99, 3.12, 2.21, 5.0],
+            "Class": [0, 0, 1, 0, 0, 0, 1, 0]
+        };
+
+        // DOM elements
+        const fileInput = document.getElementById('fileInput');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const trainBtn = document.getElementById('trainBtn');
+        const predictBtn = document.getElementById('predictBtn');
+        const tabBtns = document.querySelectorAll('.tab-btn');
+        const tabContents = document.querySelectorAll('.tab-content');
+        const fraudPieChartCtx = document.getElementById('fraudPieChart').getContext('2d');
+        const amountHistogramCtx = document.getElementById('amountHistogram').getContext('2d');
+        const confusionMatrixCtx = document.getElementById('confusionMatrix').getContext('2d');
+        const probabilityChartCtx = document.getElementById('probabilityChart').getContext('2d');
+        
+        // Initialize charts
+        let fraudPieChart, amountHistogram, confusionMatrixChart, probabilityChart;
+
+        // Tab switching logic
+        tabBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const tabId = btn.getAttribute('data-tab');
+                
+                tabBtns.forEach(b => b.classList.remove('border-blue-600', 'text-blue-600', 'active'));
+                btn.classList.add('border-blue-600', 'text-blue-600', 'active');
+                
+                tabContents.forEach(content => content.classList.remove('active'));
+                document.getElementById(tabId).classList.add('active');
+            });
+        });
+
+        // Upload button click handler
+        uploadBtn.addEventListener('click', () => {
+            const file = fileInput.files[0];
+            if (!file) {
+                alert('Please select a file first');
+                return;
+            }
+            
+            // Show loading state
+            uploadBtn.innerHTML = 'Processing...';
+            
+            // Simulate file processing
+            setTimeout(() => {
+                processData(sampleData);
+                uploadBtn.innerHTML = 'Upload & Analyze';
+            }, 1500);
+        });
+
+        // Train button click handler
+        trainBtn.addEventListener('click', () => {
+            const modelType = document.getElementById('modelSelect').value;
+            const imbalanceMethod = document.getElementById('imbalanceSelect').value;
+            
+            trainBtn.innerHTML = 'Training...';
+            
+            // Simulate model training
+            setTimeout(() => {
